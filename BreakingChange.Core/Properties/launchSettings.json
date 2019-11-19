@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "BreakingChange.Core": {
+      "commandName": "Project",
+      "commandLineArgs": "\"C:\\Users\\tomcz\\source\\repos\\RapidSettingsOlder\\RapidSettings.sln\" \"C:\\Users\\tomcz\\source\\repos\\RapidSettings\\RapidSettings.sln\""
+    }
+  }
+}
