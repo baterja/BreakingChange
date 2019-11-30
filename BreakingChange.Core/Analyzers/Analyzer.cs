@@ -11,18 +11,8 @@ namespace BreakingChange.Core.Analyzers
     {
         public async Task Analyze(Solution newerSolution, Solution olderSolution)
         {
-            var newerSolutionCompilations = await newerSolution.GetCompilationsAsync().ConfigureAwait(false);
-            var getNewerPublicTypeSymbolsTasks = newerSolutionCompilations
-                .Select(compilation => compilation.GetPublicTypeSymbolsAsync())
-                .ToList();
-
-            var olderSolutionCompilations = await olderSolution.GetCompilationsAsync().ConfigureAwait(false);
-            var getOlderPublicTypeSymbolsTasks = olderSolutionCompilations
-                .Select(compilation => compilation.GetPublicTypeSymbolsAsync())
-                .ToList();
-
-            var newerPublicTypeSymbols = (await Task.WhenAll(getNewerPublicTypeSymbolsTasks).ConfigureAwait(false)).SelectMany(x => x);
-            var olderPublicTypeSymbols = (await Task.WhenAll(getOlderPublicTypeSymbolsTasks).ConfigureAwait(false)).SelectMany(x => x);
+            var solutionsCompilations = await (newerSolution, olderSolution).ForBoth(solution => solution.GetCompilationsAsync()).ConfigureAwait(false);
+            var (newerPublicTypeSymbols, olderPublicTypeSymbols) = await solutionsCompilations.ForBoth(compilation => compilation.GetPublicTypeSymbolsAsync()).ConfigureAwait(false);
 
             var typeSymbolsDiff = Differ.GetDiff(newerPublicTypeSymbols, olderPublicTypeSymbols, new TypeSymbolEqualityComparer());
             this.LogTypeSymbolsDiff(typeSymbolsDiff);

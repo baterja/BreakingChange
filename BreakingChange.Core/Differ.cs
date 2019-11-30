@@ -5,12 +5,42 @@ namespace BreakingChange.Core
 {
     internal class Differ
     {
+        private enum DiffResult
+        {
+            Added,
+            Removed,
+            Matching,
+        }
+
         public static Diff<T> GetDiff<T>(IEnumerable<T> newerElements, IEnumerable<T> olderElements, IEqualityComparer<T> comparer)
            where T : class
         {
-            var added = new List<T>();
-            var matching = new List<(T Newer, T Older)>();
+            var diffStream = GetDiffStream(newerElements, olderElements, comparer);
+            var diffGroups = diffStream
+                .ToLookup(match =>
+                {
+                    if (match.NewerMatch != null)
+                    {
+                        if (match.OlderMatch != null)
+                        {
+                            return DiffResult.Matching;
+                        }
 
+                        return DiffResult.Added;
+                    }
+
+                    return DiffResult.Removed;
+                });
+            var added = diffGroups[DiffResult.Added].Select(match => match.NewerMatch!);
+            var removed = diffGroups[DiffResult.Removed].Select(match => match.OlderMatch!);
+            var matching = diffGroups[DiffResult.Matching].Cast<(T, T)>();
+
+            return new Diff<T>(added, removed, matching);
+        }
+
+        private static IEnumerable<(T? OlderMatch, T? NewerMatch)> GetDiffStream<T>(IEnumerable<T> newerElements, IEnumerable<T> olderElements, IEqualityComparer<T> comparer)
+           where T : class
+        {
             var olderElementsList = olderElements.ToList();
 
             foreach (var newerElement in newerElements)
@@ -18,17 +48,19 @@ namespace BreakingChange.Core
                 var olderMatchingElement = olderElementsList.FirstOrDefault(olderElement => comparer.Equals(olderElement, newerElement));
                 if (olderMatchingElement == default)
                 {
-                    added.Add(newerElement);
+                    yield return (null, newerElement);
                 }
                 else
                 {
-                    matching.Add((newerElement, olderMatchingElement));
+                    yield return (olderMatchingElement, newerElement);
+                    olderElementsList.Remove(olderMatchingElement);
                 }
             }
 
-            var removed = olderElementsList.Where(olderElement => !matching.Any(matchingElements => comparer.Equals(matchingElements.Older, olderElement)));
-
-            return new Diff<T>(added, removed, matching);
+            foreach (var olderNotMatchedElement in olderElementsList)
+            {
+                yield return (olderNotMatchedElement, null);
+            }
         }
     }
 }
