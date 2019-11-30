@@ -17,23 +17,23 @@ namespace BreakingChange.Core.Extensions
             (first, second) = (objects[0], objects[1]);
         }
 
-        public static (TOutput newerResult, TOutput olderResult) ForBoth<TInput, TOutput>(this (TInput Newer, TInput Older) tuple, Func<TInput, TOutput> func)
+        public static (TOutput newerResult, TOutput olderResult) ForBoth<TInput, TOutput>(this (TInput newer, TInput older) tuple, Func<TInput, TOutput> func)
         {
-            return (func(tuple.Newer), func(tuple.Older));
+            return (func(tuple.newer), func(tuple.older));
         }
 
-        public static (IEnumerable<TOutput> newerResult, IEnumerable<TOutput> olderResult) ForBoth<TInput, TOutput>(this (IEnumerable<TInput> Newer, IEnumerable<TInput> Older) tuple, Func<TInput, TOutput> func)
+        public static (IEnumerable<TOutput> newerResult, IEnumerable<TOutput> olderResult) ForBoth<TInput, TOutput>(this (IEnumerable<TInput> newer, IEnumerable<TInput> older) tuple, Func<TInput, TOutput> func)
         {
-            return (tuple.Newer.Select(func), tuple.Older.Select(func));
+            return (tuple.newer.Select(func), tuple.older.Select(func));
         }
 
-        public static async Task<(TOutput newerResult, TOutput olderResult)> ForBoth<TInput, TOutput>(this (TInput Newer, TInput Older) tuple, Func<TInput, Task<TOutput>> func)
+        public static async Task<(TOutput newerResult, TOutput olderResult)> ForBoth<TInput, TOutput>(this (TInput newer, TInput older) tuple, Func<TInput, Task<TOutput>> func)
         {
-            var (newerResult, olderResult) = await Task.WhenAll(func(tuple.Newer), func(tuple.Older)).ConfigureAwait(false);
+            var (newerResult, olderResult) = await Task.WhenAll(func(tuple.newer), func(tuple.older)).ConfigureAwait(false);
             return (newerResult, olderResult);
         }
 
-        public static async Task<(IEnumerable<TOutput> newerResult, IEnumerable<TOutput> olderResult)> ForBoth<TInput, TOutput>(this (IEnumerable<TInput> Newer, IEnumerable<TInput> Older) tuple, Func<TInput, Task<TOutput>> func)
+        public static async Task<(IEnumerable<TOutput> newerResult, IEnumerable<TOutput> olderResult)> ForBoth<TInput, TOutput>(this (IEnumerable<TInput> newer, IEnumerable<TInput> older) tuple, Func<TInput, Task<TOutput>> func)
         {
             var (newerTasks, olderTasks) = tuple.ForBoth(element => element.Select(func).ToList());
             var newerResult = await Task.WhenAll(newerTasks).ConfigureAwait(false);
@@ -41,7 +41,7 @@ namespace BreakingChange.Core.Extensions
             return (newerResult, olderResult);
         }
 
-        public static async Task<(IEnumerable<TOutput> newerResult, IEnumerable<TOutput> olderResult)> ForBoth<TInput, TOutput>(this (IEnumerable<TInput> Newer, IEnumerable<TInput> Older) tuple, Func<TInput, Task<IEnumerable<TOutput>>> func)
+        public static async Task<(IEnumerable<TOutput> newerResult, IEnumerable<TOutput> olderResult)> ForBoth<TInput, TOutput>(this (IEnumerable<TInput> newer, IEnumerable<TInput> older) tuple, Func<TInput, Task<IEnumerable<TOutput>>> func)
         {
             var (newerResults, olderResults) = await tuple.ForBoth(async element => await Task.WhenAll(element.Select(func)).ConfigureAwait(false)).ConfigureAwait(false);
             return (newerResults.SelectMany(x => x), olderResults.SelectMany(x => x));

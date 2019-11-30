@@ -31,20 +31,30 @@ namespace BreakingChange.Core
             using var workspace = MSBuildWorkspace.Create();
             workspace.WorkspaceFailed += (o, e) => Console.WriteLine(e.Diagnostic.Message);
 
-            var olderSolutionPath = args[0];
-            Console.WriteLine($"Loading older solution '{olderSolutionPath}'");
-            var olderSolution = await workspace.OpenSolutionAsync(olderSolutionPath, new ConsoleProgressReporter()).ConfigureAwait(false);
-            Console.WriteLine($"Finished loading solution '{olderSolutionPath}'");
+            //var olderSolutionPath = args[0];
+            //Console.WriteLine($"Loading older solution '{olderSolutionPath}'");
+            //var olderSolution = await workspace.OpenSolutionAsync(olderSolutionPath, new ConsoleProgressReporter()).ConfigureAwait(false);
+            //Console.WriteLine($"Finished loading solution '{olderSolutionPath}'");
 
-            var newerSolutionPath = args[1];
-            Console.WriteLine($"Loading newer solution '{newerSolutionPath}'");
-            var newerSolution = await workspace.OpenSolutionAsync(newerSolutionPath, new ConsoleProgressReporter()).ConfigureAwait(false);
-            Console.WriteLine($"Finished loading solution '{newerSolutionPath}'");
+            //var newerSolutionPath = args[1];
+            //Console.WriteLine($"Loading newer solution '{newerSolutionPath}'");
+            //var newerSolution = await workspace.OpenSolutionAsync(newerSolutionPath, new ConsoleProgressReporter()).ConfigureAwait(false);
+            //Console.WriteLine($"Finished loading solution '{newerSolutionPath}'");
+
+            var olderProjectPath = args[0];
+            Console.WriteLine($"Loading older project '{olderProjectPath}'");
+            var olderProject = await workspace.OpenProjectAsync(olderProjectPath, new ConsoleProgressReporter()).ConfigureAwait(false);
+            Console.WriteLine($"Finished loading project '{olderProjectPath}'");
+
+            var newerProjectPath = args[1];
+            Console.WriteLine($"Loading newer project '{newerProjectPath}'");
+            var newerProject = await workspace.OpenProjectAsync(newerProjectPath, new ConsoleProgressReporter()).ConfigureAwait(false);
+            Console.WriteLine($"Finished loading project '{newerProjectPath}'");
 
             try
             {
                 var analyzer = new Analyzer();
-                await analyzer.Analyze(newerSolution, olderSolution).ConfigureAwait(false);
+                await analyzer.Analyze(newerProject, olderProject).ConfigureAwait(false);
             }
             catch (Exception e)
             {

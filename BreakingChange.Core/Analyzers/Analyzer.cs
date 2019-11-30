@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BreakingChange.Core.Comparers;
@@ -9,26 +10,53 @@ namespace BreakingChange.Core.Analyzers
 {
     internal class Analyzer
     {
+        // TODO as extension
+        public async Task Analyze(Project newerProject, Project olderProject)
+        {
+            var (newerCompilation, olderCompilation) = await (newerProject, olderProject).ForBoth(project => project.GetCompilationAsync()).ConfigureAwait(false);
+            // TODO if null then error
+            await this.Analyze(new[] { newerCompilation }, new[] { olderCompilation }).ConfigureAwait(false);
+        }
+
+        // TODO as extension
         public async Task Analyze(Solution newerSolution, Solution olderSolution)
         {
-            var solutionsCompilations = await (newerSolution, olderSolution).ForBoth(solution => solution.GetCompilationsAsync()).ConfigureAwait(false);
-            var (newerPublicTypeSymbols, olderPublicTypeSymbols) = await solutionsCompilations.ForBoth(compilation => compilation.GetPublicTypeSymbolsAsync()).ConfigureAwait(false);
+            var (newerCompilations, olderCompilations) = await (newerSolution, olderSolution).ForBoth(solution => solution.GetCompilationsAsync()).ConfigureAwait(false);
+            await this.Analyze(newerCompilations, olderCompilations).ConfigureAwait(false);
+        }
+
+        public async Task Analyze(IEnumerable<Compilation> newerCompilations, IEnumerable<Compilation> olderCompilations)
+        {
+            var (newerPublicTypeSymbols, olderPublicTypeSymbols) = await (newerCompilations, olderCompilations).ForBoth(compilation => compilation.GetPublicTypeSymbolsAsync()).ConfigureAwait(false);
 
             var typeSymbolsDiff = Differ.GetDiff(newerPublicTypeSymbols, olderPublicTypeSymbols, new TypeSymbolEqualityComparer());
             this.LogTypeSymbolsDiff(typeSymbolsDiff);
 
-            var methodsDiffs = typeSymbolsDiff.Matching.Select(matchingTypes =>
+            var matchingTypes = typeSymbolsDiff.Matching;
+            var matchingTypesPublicMethods = matchingTypes
+                .Select(matchingTypes => matchingTypes.ForBoth(typeSymbol => typeSymbol.GetPublicMethods().ToList()))
+                .ToList();
+
+            var matchingTypesOrdinaryMethods = matchingTypesPublicMethods.Select(publicTypes => publicTypes.ForBoth(methodSymbols => methodSymbols.OfKind(MethodKind.Ordinary)));
+            var ordinaryMethodEqualityComparer = new MethodSymbolEqualityComparer();
+            var ordinaryMethodsDiffs = matchingTypesOrdinaryMethods.Select(publicTypes =>
             {
-                var newerPublicMethods = matchingTypes.Newer.GetPublicMethods();
-                var olderPublicMethods = matchingTypes.Older.GetPublicMethods();
-                return Differ.GetDiff(newerPublicMethods, olderPublicMethods, new MethodSymbolEqualityComparer());
+                return Differ.GetDiff(publicTypes.newerResult, publicTypes.olderResult, ordinaryMethodEqualityComparer);
             });
 
-            foreach (var methodDiff in methodsDiffs)
+            foreach (var methodDiff in ordinaryMethodsDiffs)
             {
                 this.LogMethodDiff(methodDiff);
             }
+
+            //var matchingOrdinaryMethods = ordinaryMethodsDiffs.Select(diff => diff.Matching);
+            //var matchingOrdinaryMethodsDetailedComparisons = matchingOrdinaryMethods.Select(matchingOrdinaryMethods =>
+            //{
+            //    return matchingOrdinaryMethods.Select(match => match.Newer.)
+            //});
         }
+
+
 
         private void LogTypeSymbolsDiff(Diff<INamedTypeSymbol> typeSymbolsDiff)
         {

@@ -9,11 +9,10 @@ namespace BreakingChange.Core.Extensions
     {
         public static async Task<IEnumerable<Compilation>> GetCompilationsAsync(this Solution solution)
         {
-            var compilableProjects = solution.Projects.Where(project => project.SupportsCompilation);
-            var compilationsTasks = compilableProjects.Select(project => project.GetCompilationAsync());
-
+            var compilationsTasks = solution.Projects.Select(project => project.GetCompilationAsync());
             var compilations = await Task.WhenAll(compilationsTasks).ConfigureAwait(false);
-            return compilations;
+            var nonNullCompilations = compilations.Where(compilation => compilation != null);
+            return nonNullCompilations;
         }
     }
 }
